@@ -61,13 +61,17 @@ y = torch.tensor(y_df.values, dtype=torch.float32)
 class Net(nn.Module):
     def __init__(self):
         super(Net, self).__init__()
-        self.fc1 = nn.Linear(5, 100)  
-        self.fc2 = nn.Linear(100, 50)  
-        self.fc3 = nn.Linear(50, 5)
+        self.fc1 = nn.Linear(5, 200)  
+        self.fc2 = nn.Linear(200, 100)  
+        self.fc3 = nn.Linear(100, 50)
+        self.fc4 = nn.Linear(50, 25)
+        self.fc5 = nn.Linear(25, 5)
     def forward(self, x):
         x = F.relu(self.fc1(x)) 
         x = F.relu(self.fc2(x)) 
-        x = self.fc3(x)          
+        x = F.relu(self.fc3(x))     
+        x = F.relu(self.fc4(x))
+        x = self.fc5(x)
         return x
 model = Net()
 optimizer = optim.Adam(model.parameters(), lr=0.01)
@@ -81,7 +85,7 @@ def train(x, y, epochs):
         loss = criterion(pred, y) 
         loss.backward()             
         optimizer.step()
-        if epoch % 500 == 0:
+        if epoch % 1000 == 0:
             mae = torch.mean(torch.abs(pred - y)).item()
             print(f"[Epoch] : {epoch}/{epochs} | [Loss] : {loss.item():.4f} | [MAE] : {mae:.4f}")
 def evaluate(x, y, num_examples=10):
@@ -91,7 +95,6 @@ def evaluate(x, y, num_examples=10):
         pred = model(x)
         loss = criterion(pred, y)
         mae = torch.mean(torch.abs(pred - y)).item()
-
         print(f"[Loss] : {loss.item():.4f} | [MAE] : {mae:.4f}")
         print("\n--- Example Predictions ---")
         for i in range(min(num_examples, len(pred))):
@@ -114,26 +117,32 @@ def main():
         save_choice = input("Do you want to export this trained model? (y/n): ").strip().lower()
         if save_choice == "y":
             model_io(1 ,model_instance=model)
-    elif choice == "l":
+    else:
         loaded_model = model_io(2, model_class=Net)
         if loaded_model:
             model = loaded_model
         evaluate(x, y, 10)
-    else:
-        print("Invalid choice. Please type 'T' or 'L'.")
     while True:
         play = []
-        for i in range(5):
+        storage = []
+        pred_storage = []
+        for i in range(10):
             while True:
                 try:
-                    playnum = int(input(f"{i + 1} NUM: "))
+                    playnum = float(input(f"{i + 1} NUM: "))
                     break
                 except ValueError:
                     print("Please enter a valid number.")
-            play.append(torch.tensor(playnum, dtype=torch.float32))
+            if i <= 4:
+                play.append(torch.tensor(playnum, dtype=torch.float32))
+            storage.append(playnum)
         play  = torch.tensor(play, dtype=torch.float32)
         pred = predict(play)
         for i in range(len(pred)):
-            print(f"{i + 6} NUM: {pred[i]:.2f}")
+            pred_storage.append(float(f"{pred[i]:.2f}"))
+            print(f"{i + 6} NUM PRED: {pred[i]:.2f}")
+        plt.plot(list(range(len(storage))), storage, linestyle='-', color='blue')        
+        plt.plot(list(range(5, 10)), pred_storage, marker='x', linestyle='-', color='red')        
+        plt.show()
         print("\n")
 main()
